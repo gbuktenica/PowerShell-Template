@@ -22,6 +22,9 @@
 .NOTES  
     Author     : Glen Buktenica
 	Change Log : 2016XXXX Initial Build  
+
+.LINK
+    http://blog.buktenica.com/my-powershell-template/
 #> 
 # Parameter commands must be the first non-comment line.
 Param(
