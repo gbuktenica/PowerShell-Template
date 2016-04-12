@@ -38,9 +38,6 @@
 .NOTES  
     Author     : Glen Buktenica
 	Change Log : 20160407 Initial Build  
-
-.LINK
-    http://blog.buktenica.com/my-powershell-template/
 #> 
 # Parameter commands must be the first non-comment line.
 Param(
@@ -69,18 +66,18 @@ Function Configure-Logs
 
 .NOTES  
     Author     : Glen Buktenica
-	Change Log : 20160329 Initial Build  
-
+	Change Log : 20160329 Initial Build 
+               : 20160412 Bug fix: Global error path
 #> 
     If ($Logging){$VerbosePreference = "Continue"} else {$VerbosePreference = "SilentlyContinue"} 
-    If ($script:MyInvocation.MyCommand.Path) #Confirm script has been saved
+    If ($MyInvocation.ScriptName) #Confirm script has been saved
     {
         # Create log paths in the same location as the script
-        $CurrentPath = Split-Path $script:MyInvocation.MyCommand.Path
-        $ScriptName = [io.path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
+        $CurrentPath = Split-Path $MyInvocation.ScriptName
+        $ScriptName = [io.path]::GetFileNameWithoutExtension($MyInvocation.ScriptName)
         $LogPathDate = Get-Date -Format yyyyMMdd
-        $LogPath = "$CurrentPath\$ScriptName$LogPathDate.log"       # Example c:\scripts\MyScript20160329.log
-        $ErrorPath = "$CurrentPath\$ScriptName$LogPathDate.err.log" # Example c:\scripts\MyScript20160329.err.log
+        $global:LogPath = "$CurrentPath\$ScriptName$LogPathDate.log"       # Example c:\scripts\MyScript20160329.log
+        $global:ErrorPath = "$CurrentPath\$ScriptName$LogPathDate.err.log" # Example c:\scripts\MyScript20160329.err.log
         Try
         {
             # Test that log file location is able to be written to
@@ -89,8 +86,8 @@ Function Configure-Logs
         Catch
         {
             # If log file location not writable save to current user Temp
-            $LogPath = "$env:LOCALAPPDATA\temp\$ScriptName$LogPathDate.log"       # Example C:\Users\bukteng0\AppData\Local\temp\MyScript20160329.log
-            $ErrorPath = "$env:LOCALAPPDATA\temp\$ScriptName$LogPathDate.err.log" # Example C:\Users\bukteng0\AppData\Local\temp\MyScript20160329.err.log
+            $global:LogPath = "$env:LOCALAPPDATA\temp\$ScriptName$LogPathDate.log"       # Example C:\Users\bukteng0\AppData\Local\temp\MyScript20160329.log
+            $global:ErrorPath = "$env:LOCALAPPDATA\temp\$ScriptName$LogPathDate.err.log" # Example C:\Users\bukteng0\AppData\Local\temp\MyScript20160329.err.log
             {$error.Remove($error[0])}
         }
         Finally
@@ -98,7 +95,8 @@ Function Configure-Logs
             # Clean up test file
             Remove-Item "$LogPath.test" -Force -ErrorAction SilentlyContinue
         }
-
+        Write-Verbose $LogPath
+        Write-Verbose $ErrorPath
         # Start standard logging if NOT running in PowerShell ISE and logging enabled and the log path is valid.
         If(($Host.UI.RawUI.BufferSize.Height -gt 0) -and ($Logging) -and ($LogPath)) 
         {
@@ -107,14 +105,13 @@ Function Configure-Logs
         }
         # Clear standard error in case populated by previous scripts
         $Error.Clear()
-        $AutomaticVariables = Get-Variable
     }
 }
 Function Export-Logs
 {
 <#  
 .SYNOPSIS  
-    If the standard error variable is populated then all errors and variables will be saved to a text file.
+    If the standard error variable is populated then all errors will be saved to a text file.
 
 .EXAMPLE
     Export-Logs should be the last line in a script and/or called before Exit command.
@@ -127,7 +124,8 @@ Function Export-Logs
 
 .NOTES  
     Author     : Glen Buktenica
-	Change Log : 20160329 Initial Build  
+	Change Log : 20160329 Initial Build 
+               : 20160412 Bug Fix: Export Variables 
 #> 
     If ($Error -and $ErrorPath)
     {
@@ -147,13 +145,6 @@ Function Export-Logs
             $a = $_.InvocationInfo.ScriptLineNumber 
             "Error line:  $a"
             $_.CategoryInfo } | Out-File -FilePath $ErrorPath -append
-        # Export the content of script variables excluding automatic variables
-        Compare-Object (Get-Variable) $AutomaticVariables -Property Name -PassThru | Where -Property Name -ne "AutomaticVariables" | ForEach-Object {"--------------------------------------------------" 
-            "Variable Name:"
-            $_.Name
-            "Variable Value:"
-            $_.Value } | Out-File -FilePath $ErrorPath -append
-        "----------------------------------------------------------------------------------------------------" | Out-File -FilePath $ErrorPath -append
     }
     # If transcripting started, stop the transcript
     Try{If($Transcripting)
