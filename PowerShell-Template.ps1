@@ -22,11 +22,7 @@
 .NOTES  
     Author     : Glen Buktenica
 	Change Log : 2016XXXX Initial Build  
-
-.LINK
-    http://blog.buktenica.com/my-powershell-template/
 #> 
-# Parameter commands must be the first non-comment line.
 Param(
     [switch]$Logging #= $true # decomment line to force logging.
      ) 
@@ -51,15 +47,15 @@ Function Configure-Logs
 
 .NOTES  
     Author     : Glen Buktenica
-    Change Log : 20160329 Initial Build  
-               : 20160412 Bug fix - global error path 
+	Change Log : 20160329 Initial Build 
+               : 20160412 Bug fix: Global error path
 #> 
     If ($Logging){$VerbosePreference = "Continue"} else {$VerbosePreference = "SilentlyContinue"} 
-    If ($script:MyInvocation.MyCommand.Path) #Confirm script has been saved
+    If ($MyInvocation.ScriptName) #Confirm script has been saved
     {
         # Create log paths in the same location as the script
-        $CurrentPath = Split-Path $script:MyInvocation.MyCommand.Path
-        $ScriptName = [io.path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
+        $CurrentPath = Split-Path $MyInvocation.ScriptName
+        $ScriptName = [io.path]::GetFileNameWithoutExtension($MyInvocation.ScriptName)
         $LogPathDate = Get-Date -Format yyyyMMdd
         $global:LogPath = "$CurrentPath\$ScriptName$LogPathDate.log"       # Example c:\scripts\MyScript20160329.log
         $global:ErrorPath = "$CurrentPath\$ScriptName$LogPathDate.err.log" # Example c:\scripts\MyScript20160329.err.log
@@ -90,14 +86,13 @@ Function Configure-Logs
         }
         # Clear standard error in case populated by previous scripts
         $Error.Clear()
-        $AutomaticVariables = Get-Variable
     }
 }
 Function Export-Logs
 {
 <#  
 .SYNOPSIS  
-    If the standard error variable is populated then all errors and variables will be saved to a text file.
+    If the standard error variable is populated then all errors will be saved to a text file.
 
 .EXAMPLE
     Export-Logs should be the last line in a script and/or called before Exit command.
@@ -110,7 +105,8 @@ Function Export-Logs
 
 .NOTES  
     Author     : Glen Buktenica
-	Change Log : 20160329 Initial Build  
+	Change Log : 20160329 Initial Build 
+               : 20160412 Bug Fix: Export Variables 
 #> 
     If ($Error -and $ErrorPath)
     {
@@ -130,13 +126,6 @@ Function Export-Logs
             $a = $_.InvocationInfo.ScriptLineNumber 
             "Error line:  $a"
             $_.CategoryInfo } | Out-File -FilePath $ErrorPath -append
-        # Export the content of script variables excluding automatic variables
-        Compare-Object (Get-Variable) $AutomaticVariables -Property Name -PassThru | Where -Property Name -ne "AutomaticVariables" | ForEach-Object {"--------------------------------------------------" 
-            "Variable Name:"
-            $_.Name
-            "Variable Value:"
-            $_.Value } | Out-File -FilePath $ErrorPath -append
-        "----------------------------------------------------------------------------------------------------" | Out-File -FilePath $ErrorPath -append
     }
     # If transcripting started, stop the transcript
     Try{If($Transcripting)
