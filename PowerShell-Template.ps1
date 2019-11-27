@@ -42,6 +42,9 @@ Function Set-Example{
     Param(
         $Example
     )
+    Begin{}
+    Process{}
+    End{}
 }
 
 Clear-Host
