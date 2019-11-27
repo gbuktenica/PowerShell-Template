@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "PowerShell Launch Current File",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${file}",
+            "cwd": "${file}",
+            "args": [
+                "-Verbose"
+            ]
+        },
+        {
+            "name": "PowerShell: Launch PowerShell-Template.ps1",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/PowerShell-Template.ps1",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "-Verbose"
+            ]
+        }
+    ]
+}
